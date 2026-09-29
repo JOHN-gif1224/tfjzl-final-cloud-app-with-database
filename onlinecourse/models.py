@@ -94,10 +94,44 @@ class Enrollment(models.Model):
     mode = models.CharField(max_length=5, choices=COURSE_MODES, default=AUDIT)
     rating = models.FloatField(default=5.0)
 
+# Modèle Question : une question d'examen rattachée à un cours
+class Question(models.Model):
+    # Plusieurs questions -> un cours
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    # Texte de la question
+    content = models.CharField(max_length=200)
+    # Note attribuée à la question
+    grade = models.IntegerField(default=50)
 
-# One enrollment could have multiple submission
-# One submission could have multiple choices
-# One choice could belong to multiple submissions
-#class Submission(models.Model):
-#    enrollment = models.ForeignKey(Enrollment, on_delete=models.CASCADE)
-#    choices = models.ManyToManyField(Choice)
+    def __str__(self):
+        return "Question: " + self.content
+
+    # Méthode qui indique si l'apprenant obtient le score de la question
+    def is_get_score(self, selected_ids):
+        all_answers = self.choice_set.filter(is_correct=True).count()
+        selected_correct = self.choice_set.filter(is_correct=True, id__in=selected_ids).count()
+        if all_answers == selected_correct:
+            return True
+        else:
+            return False
+
+
+# Modèle Choice : un choix de réponse pour une question
+class Choice(models.Model):
+    # Plusieurs choix -> une question
+    question = models.ForeignKey(Question, on_delete=models.CASCADE)
+    # Texte du choix
+    content = models.CharField(max_length=200)
+    # Ce choix est-il une bonne réponse ?
+    is_correct = models.BooleanField(default=False)
+
+    def __str__(self):
+        return self.content
+
+
+# Modèle Submission : la soumission d'un examen pour une inscription
+class Submission(models.Model):
+    # Plusieurs soumissions -> une inscription (Enrollment)
+    enrollment = models.ForeignKey(Enrollment, on_delete=models.CASCADE)
+    # Les choix cochés par l'apprenant
+    choices = models.ManyToManyField(Choice)
